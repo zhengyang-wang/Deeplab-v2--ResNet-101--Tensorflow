@@ -23,8 +23,11 @@ You are supposed to complete all the requirements and do a presentation by Oct 1
 During the project, you should at least read the following papers.
 
 -[Fully Convolutional Networks for Semantic Segmentation](https://arxiv.org/abs/1411.4038)
+
 -[U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
+
 -[Multi-Scale Context Aggregation by Dilated Convolutions](https://arxiv.org/abs/1511.07122)
+
 -[DeepLab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs](https://arxiv.org/abs/1606.00915)
 
 You are welcome to talk to Zhengyang to get more papers worth to read or recommend good papers found by yourself.
