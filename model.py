@@ -5,7 +5,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from network import DeepLab_v2_Network
+from network import *
 from utils import ImageReader, decode_labels, inv_preprocess, prepare_label, write_log
 
 
@@ -33,7 +33,6 @@ class Model(object):
 	# train
 	def train(self):
 		self.train_setup()
-		self.train_summary()
 
 		self.sess.run(tf.global_variables_initializer())
 
@@ -105,14 +104,14 @@ class Model(object):
 		self.coord = tf.train.Coordinator()
 
 		# Input size
-		self.input_size = (self.conf.input_height, self.conf.input_width)
+		input_size = (self.conf.input_height, self.conf.input_width)
 		
 		# Load reader
 		with tf.name_scope("create_inputs"):
 			reader = ImageReader(
 				self.conf.data_dir,
 				self.conf.data_list,
-				self.input_size,
+				input_size,
 				self.conf.random_scale,
 				self.conf.random_mirror,
 				self.conf.ignore_label,
@@ -121,46 +120,56 @@ class Model(object):
 			self.image_batch, self.label_batch = reader.dequeue(self.conf.batch_size)
 		
 		# Create network
-		net = DeepLab_v2_Network(self.image_batch, num_classes=self.conf.num_classes,
-			is_training=self.conf.is_training)
+		if self.conf.encoder_name not in ['res101', 'res50', 'deeplab']:
+			print('encoder_name ERROR!')
+			print("Please input: res101, res50, or deeplab")
+			sys.exit(-1)
+		elif self.conf.encoder_name == 'deeplab':
+			net = Deeplab_v2(self.image_batch, self.conf.num_classes, True)
+			# Variables that load from pre-trained model.
+			restore_var = [v for v in tf.global_variables() if 'fc' not in v.name]
+			# Trainable Variables
+			all_trainable = tf.trainable_variables()
+			# Fine-tune part
+			encoder_trainable = [v for v in all_trainable if 'fc' not in v.name] # lr * 1.0
+			# Decoder part
+			decoder_trainable = [v for v in all_trainable if 'fc' in v.name]
+		else:
+			net = ResNet_segmentation(self.image_batch, self.conf.num_classes, True, self.conf.encoder_name)
+			# Variables that load from pre-trained model.
+			restore_var = [v for v in tf.global_variables() if 'resnet_v1' in v.name]
+			# Trainable Variables
+			all_trainable = tf.trainable_variables()
+			# Fine-tune part
+			encoder_trainable = [v for v in all_trainable if 'resnet_v1' in v.name] # lr * 1.0
+			# Decoder part
+			decoder_trainable = [v for v in all_trainable if 'decoder' in v.name]
 		
+		decoder_w_trainable = [v for v in decoder_trainable if 'weights' in v.name or 'gamma' in v.name] # lr * 10.0
+		decoder_b_trainable = [v for v in decoder_trainable if 'biases' in v.name or 'beta' in v.name] # lr * 20.0
+		# Check
+		assert(len(all_trainable) == len(decoder_trainable) + len(encoder_trainable))
+		assert(len(decoder_trainable) == len(decoder_w_trainable) + len(decoder_b_trainable))
+
 		# Network raw output
-		self.raw_output = net.o # [batch_size, 41, 41, 21]
+		raw_output = net.outputs # [batch_size, h, w, 21]
 
 		# Output size
-		output_size = (self.raw_output.shape[1].value, self.raw_output.shape[2].value)
-		
-		# Variables that load from pre-trained model.
-		# For training, last few layers should not be loaded.
-		restore_var = [v for v in tf.global_variables() if 'fc' not in v.name]
-		
-		# Trainable Variables
-		# Note that is_training=False still updates BN parameters gamma (scale) and beta (offset)
-		# if they are presented in var_list of the optimiser definition.
-		# So we remove them from the list.
-		all_trainable = [v for v in tf.trainable_variables() if 'beta' not in v.name and 'gamma' not in v.name]
-		# Fine-tune part
-		conv_trainable = [v for v in all_trainable if 'fc' not in v.name] # lr * 1.0
-		# ASPP part
-		fc_trainable = [v for v in all_trainable if 'fc' in v.name]
-		fc_w_trainable = [v for v in fc_trainable if 'weights' in v.name] # lr * 10.0
-		fc_b_trainable = [v for v in fc_trainable if 'biases' in v.name] # lr * 20.0
-		# check
-		assert(len(all_trainable) == len(fc_trainable) + len(conv_trainable))
-		assert(len(fc_trainable) == len(fc_w_trainable) + len(fc_b_trainable))
+		output_shape = tf.shape(raw_output)
+		output_size = (output_shape[1], output_shape[2])
 
 		# Groud Truth: ignoring all labels greater or equal than n_classes
-		label_proc = prepare_label(self.label_batch, output_size, num_classes=self.conf.num_classes, one_hot=False) # [batch_size, 41, 41]
+		label_proc = prepare_label(self.label_batch, output_size, num_classes=self.conf.num_classes, one_hot=False)
 		raw_gt = tf.reshape(label_proc, [-1,])
 		indices = tf.squeeze(tf.where(tf.less_equal(raw_gt, self.conf.num_classes - 1)), 1)
 		gt = tf.cast(tf.gather(raw_gt, indices), tf.int32)
-		raw_prediction = tf.reshape(self.raw_output, [-1, self.conf.num_classes])
+		raw_prediction = tf.reshape(raw_output, [-1, self.conf.num_classes])
 		prediction = tf.gather(raw_prediction, indices)
 
 		# Pixel-wise softmax_cross_entropy loss
 		loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
 		# L2 regularization
-		l2_losses = [self.conf.weight_decay * tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'weights' in v.name]
+		l2_losses = [self.conf.weight_decay * tf.nn.l2_loss(v) for v in all_trainable if 'weights' in v.name]
 		# Loss function
 		self.reduced_loss = tf.reduce_mean(loss) + tf.add_n(l2_losses)
 
@@ -172,22 +181,24 @@ class Model(object):
 		# We have several optimizers here in order to handle the different lr_mult
 		# which is a kind of parameters in Caffe. This controls the actual lr for each
 		# layer.
-		opt_conv = tf.train.MomentumOptimizer(learning_rate, self.conf.momentum)
-		opt_fc_w = tf.train.MomentumOptimizer(learning_rate * 10.0, self.conf.momentum)
-		opt_fc_b = tf.train.MomentumOptimizer(learning_rate * 20.0, self.conf.momentum)
+		opt_encoder = tf.train.MomentumOptimizer(learning_rate, self.conf.momentum)
+		opt_decoder_w = tf.train.MomentumOptimizer(learning_rate * 10.0, self.conf.momentum)
+		opt_decoder_b = tf.train.MomentumOptimizer(learning_rate * 20.0, self.conf.momentum)
 		# To make sure each layer gets updated by different lr's, we do not use 'minimize' here.
 		# Instead, we separate the steps compute_grads+update_params.
 		# Compute grads
-		grads = tf.gradients(self.reduced_loss, conv_trainable + fc_w_trainable + fc_b_trainable)
-		grads_conv = grads[:len(conv_trainable)]
-		grads_fc_w = grads[len(conv_trainable) : (len(conv_trainable) + len(fc_w_trainable))]
-		grads_fc_b = grads[(len(conv_trainable) + len(fc_w_trainable)):]
+		grads = tf.gradients(self.reduced_loss, encoder_trainable + decoder_w_trainable + decoder_b_trainable)
+		grads_encoder = grads[:len(encoder_trainable)]
+		grads_decoder_w = grads[len(encoder_trainable) : (len(encoder_trainable) + len(decoder_w_trainable))]
+		grads_decoder_b = grads[(len(encoder_trainable) + len(decoder_w_trainable)):]
 		# Update params
-		train_op_conv = opt_conv.apply_gradients(zip(grads_conv, conv_trainable))
-		train_op_fc_w = opt_fc_w.apply_gradients(zip(grads_fc_w, fc_w_trainable))
-		train_op_fc_b = opt_fc_b.apply_gradients(zip(grads_fc_b, fc_b_trainable))
+		train_op_conv = opt_encoder.apply_gradients(zip(grads_encoder, encoder_trainable))
+		train_op_fc_w = opt_decoder_w.apply_gradients(zip(grads_decoder_w, decoder_w_trainable))
+		train_op_fc_b = opt_decoder_b.apply_gradients(zip(grads_decoder_b, decoder_b_trainable))
 		# Finally, get the train_op!
-		self.train_op = tf.group(train_op_conv, train_op_fc_w, train_op_fc_b)
+		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) # for collecting moving_mean and moving_variance
+		with tf.control_dependencies(update_ops):
+			self.train_op = tf.group(train_op_conv, train_op_fc_w, train_op_fc_b)
 
 		# Saver for storing checkpoints of the model
 		self.saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=0)
@@ -195,25 +206,21 @@ class Model(object):
 		# Loader for loading the pre-trained model
 		self.loader = tf.train.Saver(var_list=restore_var)
 
-	def train_summary(self):
+		# Training summary
 		# Processed predictions: for visualisation.
-		raw_output_up = tf.image.resize_bilinear(self.raw_output, self.input_size)
+		raw_output_up = tf.image.resize_bilinear(raw_output, input_size)
 		raw_output_up = tf.argmax(raw_output_up, axis=3)
 		self.pred = tf.expand_dims(raw_output_up, dim=3)
-
 		# Image summary.
 		images_summary = tf.py_func(inv_preprocess, [self.image_batch, 2, IMG_MEAN], tf.uint8)
 		labels_summary = tf.py_func(decode_labels, [self.label_batch, 2, self.conf.num_classes], tf.uint8)
 		preds_summary = tf.py_func(decode_labels, [self.pred, 2, self.conf.num_classes], tf.uint8)
-
 		self.total_summary = tf.summary.image('images',
 			tf.concat(axis=2, values=[images_summary, labels_summary, preds_summary]),
 			max_outputs=2) # Concatenate row-wise.
-
 		if not os.path.exists(self.conf.logdir):
 			os.makedirs(self.conf.logdir)
-		self.summary_writer = tf.summary.FileWriter(self.conf.logdir,
-			graph=tf.get_default_graph())
+		self.summary_writer = tf.summary.FileWriter(self.conf.logdir, graph=tf.get_default_graph())
 
 	def test_setup(self):
 		# Create queue coordinator.
@@ -235,10 +242,17 @@ class Model(object):
 		self.image_batch, self.label_batch = tf.expand_dims(image, dim=0), tf.expand_dims(label, dim=0)
 		
 		# Create network
-		net = DeepLab_v2_Network(self.image_batch, num_classes=self.conf.num_classes, is_training=False)
+		if self.conf.encoder_name not in ['res101', 'res50', 'deeplab']:
+			print('encoder_name ERROR!')
+			print("Please input: res101, res50, or deeplab")
+			sys.exit(-1)
+		elif self.conf.encoder_name == 'deeplab':
+			net = Deeplab_v2(self.image_batch, self.conf.num_classes, False)
+		else:
+			net = ResNet_segmentation(self.image_batch, self.conf.num_classes, False, self.conf.encoder_name)
 
 		# predictions
-		raw_output = net.o # [batch_size, 41, 41, 21]
+		raw_output = net.outputs
 		raw_output = tf.image.resize_bilinear(raw_output, tf.shape(self.image_batch)[1:3,])
 		raw_output = tf.argmax(raw_output, axis=3)
 		pred = tf.expand_dims(raw_output, dim=3)

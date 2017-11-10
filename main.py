@@ -22,8 +22,8 @@ def configure():
 	flags.DEFINE_float('learning_rate', 2.5e-4, 'learning rate')
 	flags.DEFINE_float('power', 0.9, 'hyperparameter for poly learning rate')
 	flags.DEFINE_float('momentum', 0.9, 'momentum')
-	flags.DEFINE_boolean('is_training', False, 'whether to updates the running means and variances of BN during the training')
-	flags.DEFINE_string('pretrain_file', '../reference model/deeplab_resnet_init.ckpt', 'pre-trained model filename')
+	flags.DEFINE_string('encoder_name', 'deeplab', 'name of pre-trained model, res101, res50 or deeplab')
+	flags.DEFINE_string('pretrain_file', '../reference model/deeplab_resnet_init.ckpt', 'pre-trained model filename corresponding to encoder_name')
 	flags.DEFINE_string('data_list', './dataset/train.txt', 'training data list filename')
 
 	# testing / validation
