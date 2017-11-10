@@ -294,29 +294,6 @@ class ResNet_segmentation(object):
 		outputs = self._relu(outputs, name='%s/bottleneck_v1/relu' % name)
 		return outputs
 
-	def _modified_dilated_bottle_resblock(self, x, num_o, dilation_factor, name, identity_connection=True):
-		assert num_o % 4 == 0, 'Bottleneck number of output ERROR!'
-		# branch1
-		if not identity_connection:
-			o_b1 = self._conv2d(x, 1, num_o, 1, name='%s/bottleneck_v1/shortcut' % name)
-			o_b1 = self._batch_norm(o_b1, name='%s/bottleneck_v1/shortcut' % name, is_training=False, activation_fn=None)
-		else:
-			o_b1 = x
-		# branch2
-		o_b2a = self._conv2d(x, 1, num_o / 4, 1, name='%s/bottleneck_v1/conv1' % name)
-		o_b2a = self._batch_norm(o_b2a, name='%s/bottleneck_v1/conv1' % name, is_training=False, activation_fn=tf.nn.relu)
-
-		o_b2b = self._dilated_conv2d(o_b2a, 3, num_o / 4, dilation_factor, name='%s/bottleneck_v1/conv2' % name)
-		o_b2b = self._batch_norm(o_b2b, name='%s/bottleneck_v1/conv2' % name, is_training=False, activation_fn=tf.nn.relu)
-
-		o_b2c = self._conv2d(o_b2b, 1, num_o, 1, name='%s/bottleneck_v1/conv3' % name)
-		o_b2c = self._batch_norm(o_b2c, name='%s/bottleneck_v1/conv3' % name, is_training=False, activation_fn=None)
-		# add
-		outputs = self._add([o_b1,o_b2c], name='%s/bottleneck_v1/add' % name)
-		# relu
-		outputs = self._relu(outputs, name='%s/bottleneck_v1/relu' % name)
-		return outputs
-
 	def _ASPP(self, x, num_o, dilations):
 		o = []
 		for i, d in enumerate(dilations):
