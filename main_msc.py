@@ -1,7 +1,7 @@
 import argparse
 import os
 import tensorflow as tf
-from model import Model
+from model_msc import Model_msc
 
 
 
@@ -25,7 +25,9 @@ def configure():
 	flags.DEFINE_string('encoder_name', 'deeplab', 'name of pre-trained model, res101, res50 or deeplab')
 	flags.DEFINE_string('pretrain_file', '../reference model/deeplab_resnet_init.ckpt', 'pre-trained model filename corresponding to encoder_name')
 	flags.DEFINE_string('data_list', './dataset/train.txt', 'training data list filename')
-
+	flags.DEFINE_integer('grad_update_every', 10, 'gradient accumulation step')
+	# Note: grad_update_every = true training batch size
+	
 	# validation
 	flags.DEFINE_integer('valid_step', 20000, 'checkpoint number for validation')
 	flags.DEFINE_integer('valid_num_steps', 1449, '= number of validation samples')
@@ -40,7 +42,7 @@ def configure():
 
 	# data
 	flags.DEFINE_string('data_dir', '/tempspace2/zwang6/VOC2012', 'data directory')
-	flags.DEFINE_integer('batch_size', 10, 'training batch size')
+	flags.DEFINE_integer('batch_size', 1, 'training batch size')
 	flags.DEFINE_integer('input_height', 321, 'input image height')
 	flags.DEFINE_integer('input_width', 321, 'input image width')
 	flags.DEFINE_integer('num_classes', 21, 'number of classes')
@@ -72,7 +74,7 @@ def main(_):
 		# sess = tf.Session(config=config)
 		sess = tf.Session()
 		# Run
-		model = Model(sess, configure())
+		model = Model_msc(sess, configure())
 		getattr(model, args.option)()
 
 

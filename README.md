@@ -8,6 +8,16 @@ Created by [Zhengyang Wang](http://www.eecs.wsu.edu/~zwang6/) and [Shuiwang Ji](
 
 ## Update
 
+**12/12/2017**:
+
+* Add 'predict' function, you can use '--option=predict' to save your outputs now (both the true prediction where each pixel is between 0 and 20 and the visual one where each class has its own color).
+
+* Add multi-scale training, testing and predicting. Check main_msc.py and model_msc.py and use them just as main.py and model.py.
+
+* Add plot_training_curve.py to use the log.txt to make plots of training curve.
+
+* Now this is a 'full' (re-)implementation of [DeepLab v2 (ResNet-101)](http://liangchiehchen.com/projects/DeepLabv2_resnet.html) in TensorFlow. Thank you for the support. You are welcome to report your settings and results as well as any bug!
+
 **11/09/2017**:
 
 * The new version enables using original ImageNet pre-trained ResNet models (without pre-training on MSCOCO). You may change arguments ('encoder_name' and 'pretrain_file') in main.py to use corresponding pre-trained models. The original pre-trained ResNet-101 ckpt files are provided by tensorflow officially -- [res101](http://download.tensorflow.org/models/resnet_v1_101_2016_08_28.tar.gz) and [res50](http://download.tensorflow.org/models/resnet_v1_50_2016_08_28.tar.gz).
@@ -62,8 +72,10 @@ pretrain_file: the initial pre-trained model file for transfer learning
 
 data_list: training data list file
 
+grad_update_every (msc only): accumulate the gradients for how many steps before updating weights. Note that in the msc case, this is actually the true training batch size.
+```
 #### Testing/Validation
-
+```
 valid_step: checkpoint number for testing/validation
 
 valid_num_steps: = number of testing/validation samples
@@ -129,3 +141,10 @@ python main.py --option=test
 ```
 
 The final output includes pixel accuracy and mean IoU.
+
+Run
+
+```
+python main.py --option=predict
+```
+The outputs will be saved in the 'output' folder.
