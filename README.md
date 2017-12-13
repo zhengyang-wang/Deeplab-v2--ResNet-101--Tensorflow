@@ -8,6 +8,10 @@ Created by [Zhengyang Wang](http://www.eecs.wsu.edu/~zwang6/) and [Shuiwang Ji](
 
 ## Update
 
+**12/13/2017**:
+
+* Now the test code will output the mIoU as well as the IoU for each class.
+
 **12/12/2017**:
 
 * Add 'predict' function, you can use '--option=predict' to save your outputs now (both the true prediction where each pixel is between 0 and 20 and the visual one where each class has its own color).

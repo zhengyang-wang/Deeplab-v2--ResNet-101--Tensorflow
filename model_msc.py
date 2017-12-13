@@ -97,12 +97,15 @@ class Model_msc(object):
 		threads = tf.train.start_queue_runners(coord=self.coord, sess=self.sess)
 
 		# Test!
+		confusion_matrix = np.zeros((self.conf.num_classes, self.conf.num_classes), dtype=np.int)
 		for step in range(self.conf.valid_num_steps):
-			preds, _, _ = self.sess.run([self.pred, self.accu_update_op, self.mIou_update_op])
+			preds, _, _, c_matrix = self.sess.run([self.pred, self.accu_update_op, self.mIou_update_op, self.confusion_matrix])
+			confusion_matrix += c_matrix
 			if step % 100 == 0:
 				print('step {:d}'.format(step))
 		print('Pixel Accuracy: {:.3f}'.format(self.accu.eval(session=self.sess)))
 		print('Mean IoU: {:.3f}'.format(self.mIoU.eval(session=self.sess)))
+		self.compute_IoU_per_class(confusion_matrix)
 
 		# finish
 		self.coord.request_stop()
@@ -125,7 +128,7 @@ class Model_msc(object):
 		# img_name_list
 		image_list, _ = read_labeled_image_list('', self.conf.test_data_list)
 
-		# Test!
+		# Predict!
 		for step in range(self.conf.test_num_steps):
 			preds = self.sess.run(self.pred)
 
@@ -396,6 +399,10 @@ class Model_msc(object):
 		self.mIoU, self.mIou_update_op = tf.contrib.metrics.streaming_mean_iou(
 			self.pred, gt, num_classes=self.conf.num_classes, weights=weights)
 
+		# confusion matrix
+		self.confusion_matrix = tf.contrib.metrics.confusion_matrix(
+			self.pred, gt, num_classes=self.conf.num_classes, weights=weights)
+
 		# Loader for loading the checkpoint
 		self.loader = tf.train.Saver(var_list=tf.global_variables())
 
@@ -481,3 +488,15 @@ class Model_msc(object):
 		''' 
 		saver.restore(self.sess, filename)
 		print("Restored model parameters from {}".format(filename))
+
+	def compute_IoU_per_class(self, confusion_matrix):
+		mIoU = 0
+		for i in range(self.conf.num_classes):
+			# IoU = true_positive / (true_positive + false_positive + false_negative)
+			TP = confusion_matrix[i,i]
+			FP = np.sum(confusion_matrix[:, i]) - TP
+			FN = np.sum(confusion_matrix[i]) - TP
+			IoU = TP / (TP + FP + FN)
+			print ('class %d: %.3f' % (i, IoU))
+			mIoU += IoU / self.conf.num_classes
+		print ('mIoU: %.3f' % mIoU)
