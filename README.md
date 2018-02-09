@@ -101,7 +101,7 @@ out_dir: directory for saving prediction outputs
 
 test_step: checkpoint number for prediction
 
-test_num_steps: = number of  prediction samples
+test_num_steps: = number of prediction samples
 
 test_data_list: prediction data list filename
 
