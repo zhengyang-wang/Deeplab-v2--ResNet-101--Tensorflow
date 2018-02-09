@@ -9,7 +9,10 @@ In this work, we propose smoothed dilated convolutions to address the gridding a
 **PASCAL mIoU**:
 ![model](./results/Results_PASCAL.png)
 
+We perform the effective receptive field analysis to visualize the smoothing effect.
+
 **Effective Receptive Field Analysis**:
+
 ![model](./results/Results_ERF.png)
 
 ## Introduction
