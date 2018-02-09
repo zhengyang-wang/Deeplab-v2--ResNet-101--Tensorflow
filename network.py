@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import six
+from dilated import _dilated_conv2d
 
 
 
@@ -26,11 +27,12 @@ class Deeplab_v2(object):
 	Deeplab v2 pre-trained model (pre-trained on MSCOCO) ('deeplab_resnet_init.ckpt')
 	Deeplab v2 pre-trained model (pre-trained on MSCOCO + PASCAL_train+val) ('deeplab_resnet.ckpt')
 	"""
-	def __init__(self, inputs, num_classes, phase):
+	def __init__(self, inputs, num_classes, phase, dilated_type):
 		self.inputs = inputs
 		self.num_classes = num_classes
 		self.channel_axis = 3
 		self.phase = phase # train (True) or test (False), for BN layers in the decoder
+		self.dilated_type = dilated_type
 		self.build_network()
 
 	def build_network(self):
@@ -108,7 +110,7 @@ class Deeplab_v2(object):
 		o_b2a = self._conv2d(x, 1, num_o / 4, 1, name='res%s_branch2a' % name)
 		o_b2a = self._batch_norm(o_b2a, name='bn%s_branch2a' % name, is_training=False, activation_fn=tf.nn.relu)
 
-		o_b2b = self._dilated_conv2d(o_b2a, 3, num_o / 4, dilation_factor, name='res%s_branch2b' % name)
+		o_b2b = _dilated_conv2d(self.dilated_type, o_b2a, 3, num_o / 4, dilation_factor, name='res%s_branch2b' % name)
 		o_b2b = self._batch_norm(o_b2b, name='bn%s_branch2b' % name, is_training=False, activation_fn=tf.nn.relu)
 
 		o_b2c = self._conv2d(o_b2b, 1, num_o, 1, name='res%s_branch2c' % name)
@@ -122,7 +124,7 @@ class Deeplab_v2(object):
 	def _ASPP(self, x, num_o, dilations):
 		o = []
 		for i, d in enumerate(dilations):
-			o.append(self._dilated_conv2d(x, 3, num_o, d, name='fc1_voc12_c%d' % i, biased=True))
+			o.append(_dilated_conv2d('regular', x, 3, num_o, d, name='fc1_voc12_c%d' % i, biased=True))
 		return self._add(o, name='fc1_voc12')
 
 	# layers
@@ -135,19 +137,6 @@ class Deeplab_v2(object):
 			w = tf.get_variable('weights', shape=[kernel_size, kernel_size, num_x, num_o])
 			s = [1, stride, stride, 1]
 			o = tf.nn.conv2d(x, w, s, padding='SAME')
-			if biased:
-				b = tf.get_variable('biases', shape=[num_o])
-				o = tf.nn.bias_add(o, b)
-			return o
-
-	def _dilated_conv2d(self, x, kernel_size, num_o, dilation_factor, name, biased=False):
-		"""
-		Dilated conv2d without BN or relu.
-		"""
-		num_x = x.shape[self.channel_axis].value
-		with tf.variable_scope(name) as scope:
-			w = tf.get_variable('weights', shape=[kernel_size, kernel_size, num_x, num_o])
-			o = tf.nn.atrous_conv2d(x, w, dilation_factor, padding='SAME')
 			if biased:
 				b = tf.get_variable('biases', shape=[num_o])
 				o = tf.nn.bias_add(o, b)
@@ -188,7 +177,7 @@ class ResNet_segmentation(object):
 	Original ResNet-101 ('resnet_v1_101.ckpt')
 	Original ResNet-50 ('resnet_v1_50.ckpt')
 	"""
-	def __init__(self, inputs, num_classes, phase, encoder_name):
+	def __init__(self, inputs, num_classes, phase, encoder_name, dilated_type):
 		if encoder_name not in ['res101', 'res50']:
 			print('encoder_name ERROR!')
 			print("Please input: res101, res50")
@@ -198,6 +187,7 @@ class ResNet_segmentation(object):
 		self.num_classes = num_classes
 		self.channel_axis = 3
 		self.phase = phase # train (True) or test (False), for BN layers in the decoder
+		self.dilated_type = dilated_type
 		self.build_network()
 
 	def build_network(self):
@@ -283,7 +273,7 @@ class ResNet_segmentation(object):
 		o_b2a = self._conv2d(x, 1, num_o / 4, 1, name='%s/bottleneck_v1/conv1' % name)
 		o_b2a = self._batch_norm(o_b2a, name='%s/bottleneck_v1/conv1' % name, is_training=False, activation_fn=tf.nn.relu)
 
-		o_b2b = self._dilated_conv2d(o_b2a, 3, num_o / 4, dilation_factor, name='%s/bottleneck_v1/conv2' % name)
+		o_b2b = _dilated_conv2d(self.dilated_type, o_b2a, 3, num_o / 4, dilation_factor, name='%s/bottleneck_v1/conv2' % name)
 		o_b2b = self._batch_norm(o_b2b, name='%s/bottleneck_v1/conv2' % name, is_training=False, activation_fn=tf.nn.relu)
 
 		o_b2c = self._conv2d(o_b2b, 1, num_o, 1, name='%s/bottleneck_v1/conv3' % name)
@@ -297,7 +287,7 @@ class ResNet_segmentation(object):
 	def _ASPP(self, x, num_o, dilations):
 		o = []
 		for i, d in enumerate(dilations):
-			o.append(self._dilated_conv2d(x, 3, num_o, d, name='aspp/conv%d' % (i+1), biased=True))
+			o.append(_dilated_conv2d('regular', x, 3, num_o, d, name='aspp/conv%d' % (i+1), biased=True))
 		return self._add(o, name='aspp/add')
 
 	# layers
@@ -310,19 +300,6 @@ class ResNet_segmentation(object):
 			w = tf.get_variable('weights', shape=[kernel_size, kernel_size, num_x, num_o])
 			s = [1, stride, stride, 1]
 			o = tf.nn.conv2d(x, w, s, padding='SAME')
-			if biased:
-				b = tf.get_variable('biases', shape=[num_o])
-				o = tf.nn.bias_add(o, b)
-			return o
-
-	def _dilated_conv2d(self, x, kernel_size, num_o, dilation_factor, name, biased=False):
-		"""
-		Dilated conv2d without BN or relu.
-		"""
-		num_x = x.shape[self.channel_axis].value
-		with tf.variable_scope(name) as scope:
-			w = tf.get_variable('weights', shape=[kernel_size, kernel_size, num_x, num_o])
-			o = tf.nn.atrous_conv2d(x, w, dilation_factor, padding='SAME')
 			if biased:
 				b = tf.get_variable('biases', shape=[num_o])
 				o = tf.nn.bias_add(o, b)
