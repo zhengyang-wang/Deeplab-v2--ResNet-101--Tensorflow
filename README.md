@@ -95,6 +95,18 @@ valid_num_steps: = number of testing/validation samples
 
 valid_data_list: testing/validation data list file
 ```
+#### Prediction
+```
+out_dir: directory for saving prediction outputs
+
+test_step: checkpoint number for prediction
+
+test_num_steps: = number of  prediction samples
+
+test_data_list: prediction data list filename
+
+visual: whether to save visualizable prediction outputs
+```
 #### Data
 ```
 data_dir: data directory
