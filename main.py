@@ -19,11 +19,12 @@ def configure():
 	flags.DEFINE_integer('save_interval', 1000, 'number of iterations for saving and visualization')
 	flags.DEFINE_integer('random_seed', 1234, 'random seed')
 	flags.DEFINE_float('weight_decay', 0.0005, 'weight decay rate')
-	flags.DEFINE_float('learning_rate', 2.5e-4, 'learning rate')
+	flags.DEFINE_float('learning_rate', 0.001, 'learning rate')
 	flags.DEFINE_float('power', 0.9, 'hyperparameter for poly learning rate')
 	flags.DEFINE_float('momentum', 0.9, 'momentum')
-	flags.DEFINE_string('encoder_name', 'deeplab', 'name of pre-trained model, res101, res50 or deeplab')
+	flags.DEFINE_string('encoder_name', 'deeplab', 'name of pre-trained model: res101, res50 or deeplab')
 	flags.DEFINE_string('pretrain_file', '../reference model/deeplab_resnet_init.ckpt', 'pre-trained model filename corresponding to encoder_name')
+	flags.DEFINE_string('dilated_type', 'smooth_GI', 'type of dilated conv: regular, decompose, smooth_GI or smooth_SSC')
 	flags.DEFINE_string('data_list', './dataset/train.txt', 'training data list filename')
 
 	# validation
