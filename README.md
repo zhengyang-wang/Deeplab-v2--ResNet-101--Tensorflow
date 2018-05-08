@@ -7,6 +7,10 @@ The deeplab pre-trained ResNet-101 ckpt files (pre-trained on MSCOCO) are provid
 Created by [Zhengyang Wang](http://www.eecs.wsu.edu/~zwang6/) and [Shuiwang Ji](http://www.eecs.wsu.edu/~sji/) at Washington State University.
 
 ## Update
+**05/08/2018**:
+
+Our work based on this implementation has led to a paper accepted for long presentation in KDD2018. You may find the code of the work in this [branch](https://github.com/zhengyang-wang/Deeplab-v2--ResNet-101--Tensorflow/tree/smoothed_dilated_conv).
+
 **02/02/2018**:
 
 * A clarification:
