@@ -11,6 +11,18 @@ Created by [Zhengyang Wang](http://www.linkedin.com/in/zhengyangwang1991) and [S
 
 Our work based on this implementation has led to a paper accepted for long presentation in KDD2018. You may find the code of the work in this [branch](https://github.com/zhengyang-wang/Deeplab-v2--ResNet-101--Tensorflow/tree/smoothed_dilated_conv).
 
+If using this code , please cite our paper.
+```
+@inproceedings{wang2018smoothed,
+  title={Smoothed Dilated Convolutions for Improved Dense Prediction},
+  author={Wang, Zhengyang and Ji, Shuiwang},
+  booktitle={Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  pages={2486--2495},
+  year={2018},
+  organization={ACM}
+}
+```
+
 **02/02/2018**:
 
 * A clarification:
