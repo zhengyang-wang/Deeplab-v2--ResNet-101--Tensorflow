@@ -1,6 +1,6 @@
 # Smoothed Dilated Convolutions for Improved Dense Prediction
 
-This is the code for reproducing experimental results in our paper "Smoothed Dilated Convolutions for Improved Dense Prediction" accepted for long presentation in KDD2018. 
+This is the code for reproducing experimental results in our paper [Smoothed Dilated Convolutions for Improved Dense Prediction](http://www.kdd.org/kdd2018/accepted-papers/view/smoothed-dilated-convolutions-for-improved-dense-prediction) accepted for long presentation in KDD2018. 
 
 Created by [Zhengyang Wang](http://www.linkedin.com/in/zhengyangwang1991) and [Shuiwang Ji](http://https://www.linkedin.com/in/shuiwang-ji-9a040715/) at Texas A&M University.
 
