@@ -2,7 +2,7 @@
 
 This is the code for reproducing experimental results in our paper "Smoothed Dilated Convolutions for Improved Dense Prediction" accepted for long presentation in KDD2018. 
 
-Created by [Zhengyang Wang](http://www.eecs.wsu.edu/~zwang6/) and [Shuiwang Ji](http://www.eecs.wsu.edu/~sji/) at Washington State University.
+Created by [Zhengyang Wang](http://www.linkedin.com/in/zhengyangwang1991) and [Shuiwang Ji](http://https://www.linkedin.com/in/shuiwang-ji-9a040715/) at Texas A&M University.
 
 In this work, we propose smoothed dilated convolutions to address the gridding artifacts caused by dilated convolutions. Some results are shown below. Our methods improve the image semantic segmentation models, with only hundreds of extra training parameters. More details and experimental results will be added once the paper is published.
 
