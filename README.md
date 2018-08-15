@@ -6,6 +6,20 @@ Created by [Zhengyang Wang](http://www.linkedin.com/in/zhengyangwang1991) and [S
 
 In this work, we propose smoothed dilated convolutions to address the gridding artifacts caused by dilated convolutions. Some results are shown below. Our methods improve the image semantic segmentation models, with only hundreds of extra training parameters. More details and experimental results will be added once the paper is published.
 
+## Citation
+If using this code , please cite our paper.
+```
+@inproceedings{wang2018smoothed,
+  title={Smoothed Dilated Convolutions for Improved Dense Prediction},
+  author={Wang, Zhengyang and Ji, Shuiwang},
+  booktitle={Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  pages={2486--2495},
+  year={2018},
+  organization={ACM}
+}
+```
+
+## Results
 **PASCAL mIoU**:
 ![model](./results/Results_PASCAL.png)
 
