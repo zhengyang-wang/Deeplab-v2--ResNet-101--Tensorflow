@@ -4,7 +4,7 @@ This is an (re-)implementation of [DeepLab v2 (ResNet-101)](http://liangchiehche
 
 The deeplab pre-trained ResNet-101 ckpt files (pre-trained on MSCOCO) are provided by DrSleep -- [here](https://drive.google.com/drive/folders/0B_rootXHuswsZ0E4Mjh1ZU5xZVU). Thanks again!
 
-Created by [Zhengyang Wang](http://www.linkedin.com/in/zhengyangwang1991) and [Shuiwang Ji](http://www.linkedin.com/in/shuiwang-ji-9a040715/) at Texas A&M University.
+Created by [Zhengyang Wang](http://people.tamu.edu/~zhengyang.wang/) and [Shuiwang Ji](http://people.tamu.edu/~sji/index.html) at Texas A&M University.
 
 ## Update
 **05/08/2018**:
